@@ -3,7 +3,7 @@
 Example apps running on kubernetes utilizing kubernetes events.
 
 
-# Installation
+# Prerequisites
 
 Even though the code *should* work in later versions, this example is tested
 with kubernetes 1.7.5. More specifically:
@@ -20,4 +20,14 @@ start a kubernetes server at v1.7.5.
 [brew](https://brew.sh/) can be used to install an old kubectl at
 [v1.7.5](https://github.com/Homebrew/homebrew-core/blob/8e0e4c9c9b1c4154f31f3313e6b5cfce7de79109/Formula/kubernetes-cli.rb#L5).
 
+
+# Build
+
+## Build the docker containers
+
+from project root execute:
+
+```
+docker build  -f cmd/controlplane/Dockerfile  .
+```
 

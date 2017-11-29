@@ -1,14 +1,13 @@
 
-# Start from a Debian image with the latest version of Go installed
+# Start from a Debian image with Go 1.9.2 installed
 # and a workspace (GOPATH) configured at /go.
-FROM golang
+FROM golang:1.9.2
 
 # Copy the local package files to the container's workspace.
-ADD . /go/src/github.com/Box/controlplaneapp
+ADD . /go/src/github.com/Box/error-reporting-with-kubernetes-events
 
 # Build the controlplaneapp command inside the container.
-RUN go install github.com/Box/controlplaneapp
+RUN go install github.com/Box/error-reporting-with-kubernetes-events/cmd/controlplane
 
-# Run the controlplaneapp command by default when the container starts.
-ENTRYPOINT /go/bin/controlplaneapp
+# Run the controlplaneapp is located in /go/bin/controlplane
 
