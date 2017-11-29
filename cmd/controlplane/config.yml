@@ -1,0 +1,37 @@
+# TODO: By the time you run this tutorial, the CustomResourceDefinitions may
+# have dropped the beta. So you may need to modify  the apiVersion in later
+# kubernetes versions
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: pkis.box.com
+spec:
+  group: box.com
+  version: v1
+  scope: Namespaced
+  names:
+    plural: pkis
+    singular: pki
+    kind: Pki
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: controlplane
+---
+apiVersion: "extensions/v1beta1"
+kind: Deployment
+metadata:
+  name: controlplane
+  namespace: controlplane
+spec:
+  template:
+    metadata:
+      labels:
+        app: controlplane
+    spec:
+      containers:
+        - name: controlplane
+          command: [ "/go/bin/controlplane", "-logtostderr" ]
+          image: boxinc/error-reporting-with-kubernetes-events:controlplane
+

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app1
+---
+apiVersion: "box.com/v1"
+kind: Pki
+metadata:
+  name: app1-pki
+  namespace: app1
+spec:
+  # This service name has a typo
+  serviceName: appp1
+---
+apiVersion: "extensions/v1beta1"
+kind: Deployment
+metadata:
+  name: app1
+  namespace: app1
+spec:
+  template:
+    metadata:
+      labels:
+        app: app1
+    spec:
+      containers:
+        - name: app1
+          command: [ "bash", "-c", "sleep 1000" ]
+          image: openshift/base-centos7:latest
+          volumeMounts:
+          - name: app1-pki
+            mountPath: "/etc/foo"
+            readOnly: true
+      volumes:
+        - name: app1-pki
+          secret:
+            secretName: app1-pki
+
+
+
