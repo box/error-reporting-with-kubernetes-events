@@ -1,0 +1,36 @@
+
+defaults: &defaults
+  # This is the directory where circle ci checks out the repo.
+  working_directory: /go/src/github.com/box/error-reporting-with-kubernetes-events
+
+
+test_desc: &test_desc
+  <<: *defaults
+  steps:
+    - checkout
+    - run: go build ./cmd/controlplane
+
+version: 2
+jobs:
+   "compile":
+     <<: *test_desc
+     docker:
+       - image: golang:1.9.2
+
+   "allpass":
+     docker:
+       - image: ubuntu:14.04
+     steps:
+       - checkout
+       - run: echo allpass
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - "compile"
+      - allpass:
+          requires:
+            - "compile"
+
+
