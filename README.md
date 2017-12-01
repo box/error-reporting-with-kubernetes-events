@@ -28,6 +28,6 @@ start a kubernetes server at v1.7.5.
 from project root execute:
 
 ```
-docker build  -f cmd/controlplane/Dockerfile  .
+docker build  -f cmd/controlplane/Dockerfile -t boxinc/error-reporting-with-kubernetes-events:controlplane  .
 ```
 
