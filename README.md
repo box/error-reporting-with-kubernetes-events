@@ -24,9 +24,16 @@ start a kubernetes server at v1.7.5.
 
 ## Build the docker containers
 
-from project root execute:
+
+In order to use docker in mac, you may need to execute:
+```
+eval $(minikube docker-env)
+```
+
+From project root execute:
 
 ```
-docker build  -f cmd/controlplane/Dockerfile -t boxinc/error-reporting-with-kubernetes-events:controlplane  .
+docker build  -f cmd/controlplane/Dockerfile \
+   -t boxinc/error-reporting-with-kubernetes-events:controlplane  .
 ```
 
