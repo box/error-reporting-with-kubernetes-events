@@ -4,7 +4,8 @@
 FROM golang:1.9.2
 
 # Copy the local package files to the container's workspace.
-COPY . /go/src/github.com/box/error-reporting-with-kubernetes-events
+RUN mkdir /go/src/github.com/box/error-reporting-with-kubernetes-events
+COPY * /go/src/github.com/box/error-reporting-with-kubernetes-events/
 RUN ls -all /go/src/github.com/box/error-reporting-with-kubernetes-events
 RUN ls -all /go/src/github.com/box/error-reporting-with-kubernetes-events/cmd
 RUN ls -all /go/src/github.com/box/error-reporting-with-kubernetes-events/cmd/controlplane
