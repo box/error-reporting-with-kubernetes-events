@@ -2,7 +2,6 @@
 
 Example apps running on kubernetes utilizing kubernetes events.
 
-
 # Prerequisites
 
 Even though the code *should* work in later versions, this example is tested

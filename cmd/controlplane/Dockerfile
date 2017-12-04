@@ -4,10 +4,10 @@
 FROM golang:1.9.2
 
 # Copy the local package files to the container's workspace.
-ADD . /go/src/github.com/Box/error-reporting-with-kubernetes-events
+ADD . /go/src/github.com/box/error-reporting-with-kubernetes-events
 
 # Build the controlplaneapp command inside the container.
-RUN go install github.com/Box/error-reporting-with-kubernetes-events/cmd/controlplane
+RUN go install github.com/box/error-reporting-with-kubernetes-events/cmd/controlplane
 
 # Run the controlplaneapp is located in /go/bin/controlplane
 
