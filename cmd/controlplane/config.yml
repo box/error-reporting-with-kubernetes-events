@@ -1,21 +1,17 @@
+# TODO: By the time you run this tutorial, the CustomResourceDefinitions may
+# have dropped the beta. So you may need to modify  the apiVersion in later
+# kubernetes versions
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  # name must match the spec fields below, and be in the form: <plural>.<group>
   name: pkis.box.com
 spec:
-  # group name to use for REST API: /apis/<group>/<version>
   group: box.com
-  # version name to use for REST API: /apis/<group>/<version>
   version: v1
-  # either Namespaced or Cluster
   scope: Namespaced
   names:
-    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
     plural: pkis
-    # singular name to be used as an alias on the CLI and for display
     singular: pki
-    # kind is normally the CamelCased singular type. Your resource manifests use this.
     kind: Pki
 ---
 apiVersion: v1
@@ -38,11 +34,5 @@ spec:
         - name: controlplane
           command: [ "/go/bin/controlplane" ]
           # TODO: Replace the ahakanbaba with boxinc once we have a public image.
-          image: ahakanbaba/error-reporting-with-kubernetes-events:controlplane
-
-
-
-
-
-
+          image: boxinc/error-reporting-with-kubernetes-events:controlplane
 

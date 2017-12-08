@@ -11,8 +11,8 @@ FROM golang:1.9.2
 #   | xargs tar -zcvf allfiles.tar.gz
 #
 # from the project root.
-ADD allfiles.tar.gz /go/src/github.com/box/error-reporting-with-kubernetes-events/
-# COPY / /go/src/github.com/box/error-reporting-with-kubernetes-events/
+# ADD allfiles.tar.gz /go/src/github.com/box/error-reporting-with-kubernetes-events/
+COPY / /go/src/github.com/box/error-reporting-with-kubernetes-events/
 
 # Build the controlplaneapp command inside the container.
 RUN go install github.com/box/error-reporting-with-kubernetes-events/cmd/controlplane

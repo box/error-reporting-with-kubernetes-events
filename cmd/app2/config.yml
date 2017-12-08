@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app2
+---
+apiVersion: "box.com/v1"
+kind: Pki
+metadata:
+  name: app2-pki
+  namespace: app2
+spec:
+  # This service name has a typo
+  serviceName: app2
+
+
+
+
+
