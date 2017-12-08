@@ -7,7 +7,7 @@ The application level containers, can trigger additional processing in the
 control plane container. CustomResourceDefinitions are used for triggering the
 processing and passing parameters to the computation. The control plane container
 does some checking of the passed parameters. If there is any unexpected values
-in the parameters, it uses *Kubernetes Events* to relay the error information
+in the parameters, *Kubernetes Events* are used to relay the error information
 back to the application container.
 
 
