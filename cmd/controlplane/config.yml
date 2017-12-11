@@ -32,7 +32,6 @@ spec:
     spec:
       containers:
         - name: controlplane
-          command: [ "/go/bin/controlplane" ]
-          # TODO: Replace the ahakanbaba with boxinc once we have a public image.
+          command: [ "/go/bin/controlplane", "-logtostderr" ]
           image: boxinc/error-reporting-with-kubernetes-events:controlplane
 

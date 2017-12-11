@@ -2,11 +2,14 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	"encoding/json"
+	"flag"
 	"os"
 
+	pkiV1 "github.com/box/error-reporting-with-kubernetes-events/pkg/apis/box.com/v1"
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 )
@@ -40,62 +43,81 @@ func allowedNames() []string {
 	return rv
 }
 
-// // watchPkis uses the http watch endpoint to "react" to changes to the
-// // pkis. A goroutine with an infinite loop is started that continously
-// // waits on the http watch endpoint. The errors are logged, the received pki's
-// // are insered into the channel that is returned.
-// func (r *thirdPartyResourceReader) watchPkis() <-chan PkiEvent {
+// watchPkis uses the http watch endpoint to "react" to changes to the
+// pkis. A goroutine with an infinite loop is started that continously
+// waits on the http watch endpoint. The errors are logged, the received pki's
+// are insered into the channel that is returned.
+func watchPkis(restClient restclient.Interface) <-chan pkiV1.PkiEvent {
 
-// httpEndpoint := r.config.Host + r.pkisWatchEndpoint
+	pkisWatchPath := "/apis/box.com/v1/pkis"
 
-// events := make(chan PkiEvent)
-// go func() {
-// for {
-// resp, err := r.httpClient.Get(httpEndpoint)
-// if err != nil {
-// handleHttpGetError(err, r.retrySeconds)
-// continue
-// } else if resp.StatusCode != 200 {
-// handleHttpGetError(errors.New("Invalid status code: "+resp.Status),
-// r.retrySeconds)
-// continue
-// }
+	events := make(chan pkiV1.PkiEvent)
+	go func() {
+		for {
+			request := restClient.Get().AbsPath(pkisWatchPath).Param("watch", "true")
+			glog.Infof("HTTP Get request for: %s", request.URL())
+			body, err := request.Stream()
+			if err != nil {
+				glog.Errorf("restClient Stream Error  %v.", err)
+				continue
+			}
+			defer body.Close()
 
-// decoder := json.NewDecoder(resp.Body)
+			decoder := json.NewDecoder(body)
 
-// // Incrementally parse the body as long as it grows, It looks like this
-// // is the behavior in watch endpoints
-// for {
-// var event PkiEvent
-// err = decoder.Decode(&event)
-// if err != nil {
-// handleJsonDecodeError(err)
-// break
-// }
-// events <- event
-// }
-// resp.Body.Close()
+			// Incrementally parse the body as long as it grows, It looks like this
+			// is the behavior in watch endpoints
+			for {
+				var event pkiV1.PkiEvent
+				err = decoder.Decode(&event)
+				if err != nil {
+					glog.Errorf("Json decode error %v.", err)
+					break
+				}
+				events <- event
+			}
 
-// glog.Infof("Completed one Pki reception and decode")
-// }
-// }()
-// return events
-// }
+			glog.Infof("Completed one Pki reception and decode")
+		}
+	}()
+	return events
+}
 
 func main() {
 
+	flag.Parse()
 	kubeConfig, err := restclient.InClusterConfig()
-	if err == nil {
-		glog.Fatalf("Could not get kubeconfig", err.Error())
+	if err != nil {
+		glog.Fatalf("Could not get kubeconfig: %v", err)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		glog.Fatalf("Error building kubernetes clientset: %v", err)
 	}
 
 	restClient := kubeClient.RESTClient()
-	_ = restClient
 
-	fmt.Println("vim-go")
+	pkiEvents := watchPkis(restClient)
+
+	// Handle pki additions.
+	for e := range pkiEvents {
+		glog.Infof("Seen PkiEvent : %v", e)
+		t := e.Type
+		pki := e.Object
+		if t == watch.Added || t == watch.Modified {
+			// runStatus := NewRunStatus()
+			// genStatus, _ := psg.Generate(&pki)
+			// runStatus.Pki = pki
+			// runStatus.GenerateStatus = genStatus
+			// runStatus.RecordDuration()
+			// httpHandlerData.prepend(runStatus)
+
+		} else {
+			// There are other types of changes, Deleted, Modified etc that we do
+			// not care in this example.
+			glog.Infof("Received an unhandled pki change: %s for %v. Ignoring!", t, pki)
+		}
+		glog.Flush()
+	}
 }
