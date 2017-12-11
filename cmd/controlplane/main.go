@@ -9,6 +9,8 @@ import (
 	pkiV1 "github.com/box/error-reporting-with-kubernetes-events/pkg/apis/box.com/v1"
 	"github.com/golang/glog"
 
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -41,6 +43,16 @@ func allowedNames() []string {
 	}
 
 	return rv
+}
+
+// isInSlice returns true if the string e exists in slice s
+func isInSlice(s []string, e string) bool {
+	for _, x := range s {
+		if x == e {
+			return true
+		}
+	}
+	return false
 }
 
 // watchPkis uses the http watch endpoint to "react" to changes to the
@@ -83,9 +95,70 @@ func watchPkis(restClient restclient.Interface) <-chan pkiV1.PkiEvent {
 	return events
 }
 
+// doPkiProcessing is a placeholder function for the business logic in this
+// control plane application. Once a valid Pki object is found, additional
+// processing would be triggered from this function. At the end the output is
+// written back to the api server in a Secret so that the interested parties
+// can mount it.
+func doPkiProcessing(pki pkiV1.Pki, kubeClient *kubernetes.Clientset) {
+	//
+	// .....
+	// Omitted extra processing for brevity
+	//
+
+	// Generate a Secret with the processing result and write back to the
+	// api server. The application does a secret mount and retrieves this
+	// data.
+
+	// A placeholder empty secret. In real life, the data in this
+	// secret would contain the generated pki information.
+	emptySecretSpec := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pki.Name,
+			Namespace: pki.Namespace,
+		},
+	}
+	_, err := kubeClient.CoreV1().Secrets(pki.Namespace).Create(
+		&emptySecretSpec)
+	if err != nil {
+		glog.Fatalf("Could not generate Secret: %v", err)
+	}
+}
+
+// handlePkiEvents waits for new Pki's to be added or existing ones to be modified.
+// After it such event, it does parameter checking and some external processing.
+func handlePkiEvents(pkiEvents <-chan pkiV1.PkiEvent, allowedNames []string,
+	kubeClient *kubernetes.Clientset) {
+
+	for e := range pkiEvents {
+		glog.Infof("Seen PkiEvent : %v", e)
+		t := e.Type
+		pki := e.Object
+		if t == watch.Added || t == watch.Modified {
+			serviceName := pki.Spec.ServiceName
+			if isInSlice(allowedNames, serviceName) {
+				// The input parameters are ok. Do extra processing ...
+				doPkiProcessing(pki, kubeClient)
+			} else {
+				// Found some unexpected parameters in the pki. Generate an error
+				// message using kubernetes events.
+			}
+
+		} else {
+			// There are other types of changes, Deleted, Modified etc that we do
+			// not care in this example.
+			glog.Infof("Received an unhandled pki change: %s for %v. Ignoring!", t, pki)
+		}
+		glog.Flush()
+	}
+}
+
 func main() {
 
 	flag.Parse()
+
+	allowedNames := allowedNames()
+
 	kubeConfig, err := restclient.InClusterConfig()
 	if err != nil {
 		glog.Fatalf("Could not get kubeconfig: %v", err)
@@ -97,27 +170,6 @@ func main() {
 	}
 
 	restClient := kubeClient.RESTClient()
-
 	pkiEvents := watchPkis(restClient)
-
-	// Handle pki additions.
-	for e := range pkiEvents {
-		glog.Infof("Seen PkiEvent : %v", e)
-		t := e.Type
-		pki := e.Object
-		if t == watch.Added || t == watch.Modified {
-			// runStatus := NewRunStatus()
-			// genStatus, _ := psg.Generate(&pki)
-			// runStatus.Pki = pki
-			// runStatus.GenerateStatus = genStatus
-			// runStatus.RecordDuration()
-			// httpHandlerData.prepend(runStatus)
-
-		} else {
-			// There are other types of changes, Deleted, Modified etc that we do
-			// not care in this example.
-			glog.Infof("Received an unhandled pki change: %s for %v. Ignoring!", t, pki)
-		}
-		glog.Flush()
-	}
+	handlePkiEvents(pkiEvents, allowedNames, kubeClient)
 }

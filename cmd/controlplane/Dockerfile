@@ -3,16 +3,12 @@
 # and a workspace (GOPATH) configured at /go.
 FROM golang:1.9.2
 
-# TODO: It looks like docker has a bug while COPY'ing a large number
-# of files from host to container during build. Instead of COPYing all files,
-# create a tar and then ADD the tar to the destination directory.
-# In order to create the tarfile execute
-# find . -maxdepth 1 -mindepth 1 -name "*" -a -not -name .git -a -not -name allfiles.tar.gz \
-#   | xargs tar -zcvf allfiles.tar.gz
-#
-# from the project root.
-# ADD allfiles.tar.gz /go/src/github.com/box/error-reporting-with-kubernetes-events/
+# TODO: This COPY command copies a large number of files. We have seen this to
+# fail in older docker versions like 1.10.X
 COPY / /go/src/github.com/box/error-reporting-with-kubernetes-events/
+
+# An input file to the controlplane application.
+COPY /cmd/controlplane/AllowedNames /
 
 # Build the controlplaneapp command inside the container.
 RUN go install github.com/box/error-reporting-with-kubernetes-events/cmd/controlplane
