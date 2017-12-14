@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 
 	pkiV1 "github.com/box/error-reporting-with-kubernetes-events/pkg/apis/box.com/v1"
@@ -11,9 +12,14 @@ import (
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/reference"
 )
 
 const allowedNamesFilePath string = "/AllowedNames"
@@ -66,6 +72,9 @@ func watchPkis(restClient restclient.Interface) <-chan pkiV1.PkiEvent {
 	events := make(chan pkiV1.PkiEvent)
 	go func() {
 		for {
+			// TODO: Instead of this direct HTTP request, the workqueue and
+			// informer pattern could be used. Similar to here
+			// https://github.com/kubernetes/sample-controller/blob/master/controller.go#L122
 			request := restClient.Get().AbsPath(pkisWatchPath).Param("watch", "true")
 			glog.Infof("HTTP Get request for: %s", request.URL())
 			body, err := request.Stream()
@@ -77,8 +86,7 @@ func watchPkis(restClient restclient.Interface) <-chan pkiV1.PkiEvent {
 
 			decoder := json.NewDecoder(body)
 
-			// Incrementally parse the body as long as it grows, It looks like this
-			// is the behavior in watch endpoints
+			// Incrementally parse the body as long as it grows.
 			for {
 				var event pkiV1.PkiEvent
 				err = decoder.Decode(&event)
@@ -88,7 +96,6 @@ func watchPkis(restClient restclient.Interface) <-chan pkiV1.PkiEvent {
 				}
 				events <- event
 			}
-
 			glog.Infof("Completed one Pki reception and decode")
 		}
 	}()
@@ -118,17 +125,52 @@ func doPkiProcessing(pki pkiV1.Pki, kubeClient *kubernetes.Clientset) {
 			Namespace: pki.Namespace,
 		},
 	}
-	_, err := kubeClient.CoreV1().Secrets(pki.Namespace).Create(
+
+	// Replace the Pki
+	err := kubeClient.CoreV1().Secrets(pki.Namespace).Delete(pki.Name,
+		&metav1.DeleteOptions{})
+	if err != nil {
+		glog.Infof("Could not delete Secret with name %s: %v\n", pki.Name, err)
+	}
+
+	_, err = kubeClient.CoreV1().Secrets(pki.Namespace).Create(
 		&emptySecretSpec)
 	if err != nil {
 		glog.Fatalf("Could not generate Secret: %v", err)
 	}
 }
 
+func postEventAboutPki(pki pkiV1.Pki, kubeClient *kubernetes.Clientset,
+	recorder record.EventRecorder, allowedNames []string) error {
+
+	pods, err := kubeClient.CoreV1().Pods(pki.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		glog.Fatalf(" Could not list pods in namespace %s: %v", pki.Namespace, err)
+	}
+	for _, pod := range pods.Items {
+		// TODO: Even in the same namespace, there may be some pods that do not use
+		// this pki. Ideally we only want to send this message to the relevant pods.
+		// One needs to inspect the volumeMounts done by the containers in pods.
+		// If a container does a volumeMount with the same name, only then post this
+		// error message to that Pod's lifecycle. This is left as an excercise for the
+		// reader.
+
+		// TODO: Is this really necessary ?
+		ref, err := reference.GetReference(scheme.Scheme, &pod)
+		if err != nil {
+			glog.Fatalf("Could not get refecence for pod %v: %v\n", pod.Name, err)
+		}
+		recorder.Event(ref, v1.EventTypeWarning, "pki ServiceName error",
+			fmt.Sprintf("ServiceName: %s in pki: %s is not found in allowedNames: %s",
+				pki.Spec.ServiceName, pki.Name, allowedNames))
+	}
+	return nil
+}
+
 // handlePkiEvents waits for new Pki's to be added or existing ones to be modified.
 // After it such event, it does parameter checking and some external processing.
 func handlePkiEvents(pkiEvents <-chan pkiV1.PkiEvent, allowedNames []string,
-	kubeClient *kubernetes.Clientset) {
+	kubeClient *kubernetes.Clientset, recorder record.EventRecorder) {
 
 	for e := range pkiEvents {
 		glog.Infof("Seen PkiEvent : %v", e)
@@ -142,8 +184,8 @@ func handlePkiEvents(pkiEvents <-chan pkiV1.PkiEvent, allowedNames []string,
 			} else {
 				// Found some unexpected parameters in the pki. Generate an error
 				// message using kubernetes events.
+				postEventAboutPki(pki, kubeClient, recorder, allowedNames)
 			}
-
 		} else {
 			// There are other types of changes, Deleted, Modified etc that we do
 			// not care in this example.
@@ -151,6 +193,23 @@ func handlePkiEvents(pkiEvents <-chan pkiV1.PkiEvent, allowedNames []string,
 		}
 		glog.Flush()
 	}
+}
+
+// var (
+// SchemeBuilder runtime.SchemeBuilder
+// )
+
+// eventRecorder returns an EventRecorder type that can be used to post Events
+// to different object's lifecycles.
+func eventRecorder(kubeClient *kubernetes.Clientset) (record.EventRecorder, error) {
+	// SchemeBuilder.AddToScheme(scheme.Scheme)
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartRecordingToSink(
+		&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{
+		Component: "controlplane"})
+	return recorder, nil
 }
 
 func main() {
@@ -170,6 +229,10 @@ func main() {
 	}
 
 	restClient := kubeClient.RESTClient()
+	recorder, err := eventRecorder(kubeClient)
+	if err != nil {
+		glog.Fatalf("Error getting EventRecorder: %v", err)
+	}
 	pkiEvents := watchPkis(restClient)
-	handlePkiEvents(pkiEvents, allowedNames, kubeClient)
+	handlePkiEvents(pkiEvents, allowedNames, kubeClient, recorder)
 }
