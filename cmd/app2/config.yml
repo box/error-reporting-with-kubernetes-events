@@ -11,6 +11,30 @@ metadata:
 spec:
   # This service name has a typo
   serviceName: app2
+---
+apiVersion: "extensions/v1beta1"
+kind: Deployment
+metadata:
+  name: app2
+  namespace: app2
+spec:
+  template:
+    metadata:
+      labels:
+        app: app2
+    spec:
+      containers:
+        - name: app2
+          command: [ "bash", "-c", "sleep 1000" ]
+          image: openshift/base-centos7:latest
+          volumeMounts:
+          - name: app2-pki
+            mountPath: "/etc/foo"
+            readOnly: true
+      volumes:
+        - name: app2-pki
+          secret:
+            secretName: app2-pki
 
 
 
