@@ -155,7 +155,6 @@ func postEventAboutPki(pki pkiV1.Pki, kubeClient *kubernetes.Clientset,
 		// error message to that Pod's lifecycle. This is left as an excercise for the
 		// reader.
 
-		// TODO: Is this really necessary ?
 		ref, err := reference.GetReference(scheme.Scheme, &pod)
 		if err != nil {
 			glog.Fatalf("Could not get refecence for pod %v: %v\n", pod.Name, err)
