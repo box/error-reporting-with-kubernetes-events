@@ -1,5 +1,7 @@
 # error-reporting-with-kubernetes-events
 
+[![Project Status](http://opensource.box.com/badges/stable.svg)](http://opensource.box.com/badges)
+
 Example containers running on kubernetes utilizing kubernetes events.
 
 There are two families of containers, from control plane and application level.
