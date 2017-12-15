@@ -1,6 +1,7 @@
 # error-reporting-with-kubernetes-events
 
 [![Project Status](http://opensource.box.com/badges/stable.svg)](http://opensource.box.com/badges)
+[![CircleCI](https://circleci.com/gh/box/error-reporting-with-kubernetes-events.svg?style=svg)](https://circleci.com/gh/box/error-reporting-with-kubernetes-events)
 
 Example containers running on kubernetes utilizing kubernetes events.
 
