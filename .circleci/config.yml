@@ -8,7 +8,7 @@ test_desc: &test_desc
   <<: *defaults
   steps:
     - checkout
-    - run: go build cmd/controlplane
+    - run: go build ./cmd/controlplane
 
 version: 2
 jobs:
