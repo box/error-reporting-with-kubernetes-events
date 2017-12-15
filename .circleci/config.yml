@@ -15,7 +15,7 @@ jobs:
    "compile":
      <<: *test_desc
      docker:
-       - image: circleci/golang:1.9.2
+       - image: golang:1.9.2
 
    "allpass":
      docker:
