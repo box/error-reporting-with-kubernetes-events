@@ -1,24 +1,20 @@
 
 defaults: &defaults
   # This is the directory where circle ci checks out the repo.
-  working_directory: /home/circleci/project
-
-make_check: &make_check
-  name: make check
-  command: cd test; make check
+  working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
 
 test_desc: &test_desc
   <<: *defaults
   steps:
     - checkout
-    - run: mkdir -p /go/src/github.com && pwd && ls .
+    - run: go build cmd/controlplane
 
 version: 2
 jobs:
    "compile":
      <<: *test_desc
      docker:
-       - image: golang:1.9.2
+       - image: circleci/golang:1.9.2
 
    "allpass":
      docker:
