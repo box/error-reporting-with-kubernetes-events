@@ -3,6 +3,7 @@ defaults: &defaults
   # This is the directory where circle ci checks out the repo.
   working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
 
+
 test_desc: &test_desc
   <<: *defaults
   steps:
