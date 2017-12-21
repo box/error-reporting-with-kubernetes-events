@@ -194,20 +194,18 @@ func handlePkiEvents(pkiEvents <-chan pkiV1.PkiEvent, allowedNames []string,
 	}
 }
 
-// var (
-// SchemeBuilder runtime.SchemeBuilder
-// )
-
-// eventRecorder returns an EventRecorder type that can be used to post Events
-// to different object's lifecycles.
-func eventRecorder(kubeClient *kubernetes.Clientset) (record.EventRecorder, error) {
-	// SchemeBuilder.AddToScheme(scheme.Scheme)
+// eventRecorder returns an EventRecorder type that can be
+// used to post Events to different object's lifecycles.
+func eventRecorder(
+	kubeClient *kubernetes.Clientset) (record.EventRecorder, error) {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(
-		&typedcorev1.EventSinkImpl{Interface: kubeClient.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, v1.EventSource{
-		Component: "controlplane"})
+		&typedcorev1.EventSinkImpl{
+			Interface: kubeClient.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(
+		scheme.Scheme,
+		v1.EventSource{Component: "controlplane"})
 	return recorder, nil
 }
 
