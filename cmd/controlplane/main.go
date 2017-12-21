@@ -157,11 +157,13 @@ func postEventAboutPki(pki pkiV1.Pki, kubeClient *kubernetes.Clientset,
 
 		ref, err := reference.GetReference(scheme.Scheme, &pod)
 		if err != nil {
-			glog.Fatalf("Could not get refecence for pod %v: %v\n", pod.Name, err)
+			glog.Fatalf("Could not get refecence for pod %v: %v\n",
+				pod.Name, err)
 		}
 		recorder.Event(ref, v1.EventTypeWarning, "pki ServiceName error",
-			fmt.Sprintf("ServiceName: %s in pki: %s is not found in allowedNames: %s",
-				pki.Spec.ServiceName, pki.Name, allowedNames))
+			fmt.Sprintf("ServiceName: %s in pki: %s is not found in"+
+				" allowedNames: %s", pki.Spec.ServiceName, pki.Name,
+				allowedNames))
 	}
 	return nil
 }
