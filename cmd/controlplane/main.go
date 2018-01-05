@@ -157,7 +157,7 @@ func postEventAboutPki(pki pkiV1.Pki, kubeClient *kubernetes.Clientset,
 
 		ref, err := reference.GetReference(scheme.Scheme, &pod)
 		if err != nil {
-			glog.Fatalf("Could not get refecence for pod %v: %v\n",
+			glog.Fatalf("Could not get reference for pod %v: %v\n",
 				pod.Name, err)
 		}
 		recorder.Event(ref, v1.EventTypeWarning, "pki ServiceName error",
